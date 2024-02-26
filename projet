@@ -1,0 +1,184 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define NUM_COURSES 7
+#define PASS_GRADE 10
+
+struct Course {
+    char SubjectName[50];
+    float TD;
+    float TP;
+    float Quiz;
+    float Exam;
+    float RetakeExam;
+    float totalMark;
+};
+
+struct Student {
+    char firstName[50];
+    char lastName[50];
+    char department[50];
+};
+
+void inputStudentInfo(struct Student *student);
+void inputCourses(struct Course courses[]);
+float computeTotalMark(struct Course *course);
+float computeSemesterAverage(struct Course courses[]);
+float computeRetakeSemesterAverage(struct Course courses[]);
+void displayAverage(float average);
+void displayRetakeStatus(struct Course courses[], float average, float retakeAverage);
+
+int main() {
+    struct Student student;
+    struct Course courses[NUM_COURSES];
+    float semesterAverage, retakeSemesterAverage;
+
+    inputStudentInfo(&student);
+    inputCourses(courses);
+    semesterAverage = computeSemesterAverage(courses);
+    retakeSemesterAverage = computeRetakeSemesterAverage(courses);
+
+    printf("Student Name: %s %s\n", student.firstName, student.lastName);
+    printf("Department: %s\n", student.department);
+    displayAverage(semesterAverage);
+    displayRetakeStatus(courses, semesterAverage, retakeSemesterAverage);
+
+    return 0;
+}
+
+void inputStudentInfo(struct Student *student) {
+    printf("Enter student first name: ");
+    scanf("%s", student->firstName);
+
+    printf("Enter student last name: ");
+    scanf("%s", student->lastName);
+
+    printf("Enter student department: ");
+    scanf("%s", student->department);
+}
+
+void inputCourses(struct Course courses[]) {
+    printf("Enter details for each course:\n");
+    for (int i = 0; i < NUM_COURSES; i++) {
+        printf("Course %d:\n", i + 1);
+        printf("Subject Name: ");
+        scanf("%s", courses[i].SubjectName);
+
+        if (i != 3 && i != 6) {
+            printf("TD: ");
+            scanf("%f", &courses[i].TD);
+        }
+
+        if (i != 4 && i != 6) {
+            printf("TP: ");
+            scanf("%f", &courses[i].TP);
+        }
+
+        if (i != 6) {
+            printf("Quiz: ");
+            scanf("%f", &courses[i].Quiz);
+        }
+
+        printf("Exam: ");
+        scanf("%f", &courses[i].Exam);
+
+       
+        courses[i].RetakeExam = courses[i].Exam;
+    }
+}
+
+float computeTotalMark(struct Course *course) {
+    float totalMark = 0.0;
+
+    if (course->TD != 0 && course->TP != 0 && course->Quiz != 0) {
+        totalMark = 0.4 * (course->TD + course->TP + course->Quiz) / 3.0 + 0.6 * course->Exam;
+    } else if (course->TD == 0 && course->TP == 0) {
+        totalMark = 0.5 * course->Quiz + 0.5 * course->Exam;
+    } else {
+        totalMark = course->Exam;
+    }
+
+    return totalMark;
+}
+
+float computeSemesterAverage(struct Course courses[]) {
+    float totalMarks = 0.0;
+
+    for (int i = 0; i < NUM_COURSES; i++) {
+        courses[i].totalMark = computeTotalMark(&courses[i]);
+        totalMarks += courses[i].totalMark;
+    }
+
+    return totalMarks / NUM_COURSES;
+}
+
+float computeRetakeSemesterAverage(struct Course courses[]) {
+    float totalMarks = 0.0;
+
+    for (int i = 0; i < NUM_COURSES; i++) {
+        if (courses[i].totalMark < PASS_GRADE) {
+            courses[i].totalMark = courses[i].RetakeExam;
+        }
+        totalMarks += courses[i].totalMark;
+    }
+
+    return totalMarks / NUM_COURSES;
+}
+
+void displayAverage(float average) {
+    printf("Semester Average: %.2f\n", average);
+}
+
+void displayRetakeStatus(struct Course courses[], float average, float retakeAverage) {
+    if (average >= PASS_GRADE) {
+        printf("Semester Average: %.2f\n", average);
+        printf("Congratulations! You passed all courses.\n");
+        return; 
+    }
+
+    int retakeNeeded = 0;
+    printf("Retake Status:\n");
+
+    
+    printf("%-20s %-10s %-10s %-10s %-10s %-10s %-10s\n",
+        "Subject Name", "TD", "TP", "Quiz", "CC", "Exam", "Retake Exam");
+
+    for (int i = 0; i < NUM_COURSES; i++) {
+        if (courses[i].totalMark < PASS_GRADE) {
+            printf("%-20s %-10.2f %-10.2f %-10.2f %-10.2f %-10.2f %-10.2f",
+                courses[i].SubjectName, courses[i].TD, courses[i].TP, courses[i].Quiz,
+                courses[i].totalMark, courses[i].Exam, courses[i].RetakeExam);
+            printf("\n");
+            if (average < PASS_GRADE) {
+                retakeNeeded = 1;
+                printf("Retake Needed\n");
+                printf("Enter the retake exam score for %s: ", courses[i].SubjectName);
+                scanf("%f", &courses[i].RetakeExam);
+            }
+        } else {
+            printf("%-20s %-10.2f %-10.2f %-10.2f %-10.2f %-10.2f\n",
+                courses[i].SubjectName, courses[i].TD, courses[i].TP, courses[i].Quiz,
+                courses[i].totalMark, courses[i].Exam);
+        }
+    }
+
+    printf("Semester Average after retake: %.2f\n", retakeAverage);
+
+    if (retakeNeeded) {
+        printf("\nRetake Scores:\n");
+        for (int i = 0; i < NUM_COURSES; i++) {
+            if (courses[i].totalMark < PASS_GRADE) {
+                printf("%s - TD: %.2f, TP: %.2f, Quiz: %.2f, CC: %.2f, Exam: %.2f, RetakeExam: %.2f\n",
+                    courses[i].SubjectName, courses[i].TD, courses[i].TP, courses[i].Quiz,
+                    courses[i].totalMark, courses[i].Exam, courses[i].RetakeExam);
+            }
+        }
+    }
+
+    if (retakeAverage < PASS_GRADE) {
+        printf("You still need to retake the semestre.\n");
+    }
+    else {
+        printf("Congratulations! You passed all courses after retake.\n");
+    }
+}
